@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>首页</title>
+</head>
+<body>
+<h2>欢迎您，<span id="username"></span>！</h2>
+<script type="text/javascript">
+  var username = getUrlParam("username");
+  document.getElementById("username").innerHTML = username;
+  function getUrlParam(name) {
+    var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
+    var r = window.location.search.substr(1).match(reg);
+    if (r != null) {
+      return decodeURIComponent(r[2]);
+    } else {
+      return null;
+    }
+  }
+</script>
+</body>
+</html>

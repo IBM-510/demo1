@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorator="layout/default" lang="en">
+<head>
+  <title>Chat Room</title>
+  <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/4.6.0/css/bootstrap.min.css">
+  <style>
+    body {
+      background-color: #f9f9f9;
+    }
+    .card {
+      margin-top: 50px;
+      border-radius: 10px;
+      border: none;
+      box-shadow: 0 2px 10px rgba(0,0,0,.1);
+    }
+    .card-header {
+      background-color: #007bff;
+      color: #fff;
+      font-size: 24px;
+      font-weight: bold;
+      border-radius: 10px 10px 0 0;
+    }
+    .card-body {
+      padding: 20px;
+    }
+    #chat-box {
+      background-color: #fff;
+      border-radius: 10px;
+      padding: 10px;
+    }
+    #message-input {
+      border-radius: 10px;
+    }
+    #user-list {
+      background-color: #fff;
+      border-radius: 10px;
+      padding: 10px;
+      height: 500px;
+      overflow: auto;
+      flex: auto;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          Chat Room
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-12">
+              <div id="chat-box" style="height: 200px; overflow: auto;"></div>
+            </div>
+          </div>
+          <div class="row mt-3">
+            <div class="col-12">
+              <button class="btn btn-primary" id="connect-button">连接</button>
+              <button class="btn btn-primary" id="bulk-mailing">群发</button>
+            </div>
+          </div>
+          <div class="row mt-3">
+            <div class="col-10">
+              <input type="text" class="form-control" id="message-input">
+            </div>
+            <div class="col-2">
+              <button class="btn btn-primary" id="send-button">Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="container"></div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          Online Users
+        </div>
+        <div class="card-body">
+          <div id="user-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script th:inline="javascript">
+
+
+
+  /*<![CDATA[*/
+  // Connect to WebSocket server
+  var username = getUrlParam("username");
+  var mode="all"
+  var to_username=""
+
+  var ws = new WebSocket("ws://" + window.location.host + "/chat/"+username);
+  ws.onopen = function() {
+    console.log("WebSocket connected");
+  };
+  // 当接收到服务器发送的消息时触发
+  ws.onmessage = function(event) {
+    // 解析JSON格式的消息
+    var message = JSON.parse(event.data);
+    if("users" in message)
+    {
+      console.log("show online users");
+      var users = message.users;
+      showOnlineUsers(users)
+    }
+    else
+    {
+      // 显示消息
+      var chatbox = document.getElementById("chat-box");
+      var newMessage = document.createElement("p");
+      newMessage.innerHTML = message.from + ": " + message.text;
+      chatbox.appendChild(newMessage);
+    }
+
+  };
+  // bulk mailing click
+  var bulk_mailing_Button = document.getElementById("bulk-mailing");
+  bulk_mailing_Button.onclick=function (){
+    to_username=""
+    mode="all"
+    console.log("已设置群发")
+  }
+  // Connect button click
+  var connectButton = document.getElementById("connect-button");
+  connectButton.onclick = function() {
+    ws = new WebSocket("ws://" + window.location.host + "/chat/"+username);
+    ws.onopen = function() {
+      console.log("WebSocket connected");
+    };
+  };
+  // Send button click
+  var sendButton = document.getElementById("send-button");
+  var messageInput = document.getElementById("message-input");
+  sendButton.onclick = function() {
+    var message = {
+      to: to_username,
+      text: messageInput.value,
+      mode: mode
+    };
+    var json=JSON.stringify(message)
+    ws.send(json);
+    if(mode==="single")
+    {
+      // 显示消息
+      var chatbox = document.getElementById("chat-box");
+      var newMessage = document.createElement("p");
+      newMessage.innerHTML = username + ": " + messageInput.value;
+      chatbox.appendChild(newMessage);
+    }
+    messageInput.value = "";
+  };
+  // 显示在线用户列表
+  function showOnlineUsers(users) {
+    var userList = document.getElementById("user-list");
+    userList.innerHTML = "";
+    for (var i = 0; i < users.length; i++) {
+      var user = users[i];
+      if(user.username!==username)
+        userList.appendChild(createDiv(user.username)
+      );
+    }
+  }
+  function createDiv(content) {
+    var newDiv = document.createElement("div");
+    newDiv.setAttribute("display","flex")
+    newDiv.setAttribute("justify-content","space-between")
+    newDiv.setAttribute("align-items","center")
+    var p = document.createElement("p");
+    p.setAttribute("flex","1")
+    p.setAttribute("margin-right","10px")
+    p.innerText = content;
+    var button = document.createElement("button");
+    button.setAttribute("class","btn btn-primary")
+    button.setAttribute("margin-left","10px")
+    button.innerText="私聊"
+    button.addEventListener("click", function() {
+      to_username=p.innerText
+      mode="single"
+      console.log("当前私聊的用户为："+to_username)
+    });
+    newDiv.appendChild(p);
+    newDiv.appendChild(button);
+    return newDiv;
+  }
+  function getUrlParam(name) {
+    var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
+    var r = window.location.search.substr(1).match(reg);
+    if (r != null) {
+      return decodeURIComponent(r[2]);
+    } else {
+      return null;
+    }
+  }
+  /*]]>*/
+</script>
+</body>
+</html>
