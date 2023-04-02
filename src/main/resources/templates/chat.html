@@ -61,6 +61,7 @@
             <div class="col-12">
               <button class="btn btn-primary" id="connect-button">连接</button>
               <button class="btn btn-primary" id="bulk-mailing">群发</button>
+              <button class="btn btn-primary" id="close-button">关闭连接</button>
             </div>
           </div>
           <div class="row mt-3">
@@ -101,6 +102,10 @@
   ws.onopen = function() {
     console.log("WebSocket connected");
   };
+  ws.onclose=function (event)
+  {
+    console.log("Websocket closed:"+event.code+","+event.reason)
+  }
   // 当接收到服务器发送的消息时触发
   ws.onmessage = function(event) {
     // 解析JSON格式的消息
@@ -131,11 +136,24 @@
   // Connect button click
   var connectButton = document.getElementById("connect-button");
   connectButton.onclick = function() {
-    ws = new WebSocket("ws://" + window.location.host + "/chat/"+username);
-    ws.onopen = function() {
-      console.log("WebSocket connected");
-    };
+    if(ws.readyState===ws.CLOSED)
+    {
+      ws = new WebSocket("ws://" + window.location.host + "/chat/"+username);
+      ws.onopen = function() {
+        console.log("WebSocket connected");
+      };
+    }
   };
+  // close button
+  var close_button=document.getElementById("close-button")
+  close_button.onclick=function ()
+  {
+    ws.close(1000,"连接正常关闭")
+    ws.onclose=function (event)
+    {
+      console.log("Websocket closed:"+event.code+","+event.reason)
+    }
+  }
   // Send button click
   var sendButton = document.getElementById("send-button");
   var messageInput = document.getElementById("message-input");

@@ -26,7 +26,6 @@ public class WebMvcConfig implements WebMvcConfigurer {
         exclude.add("/regist");
         exclude.add("/login.jsp");
         exclude.add("/chat");
-        exclude.add("/chat?username=*");
         exclude.add("/main.jsp");
         registry.addInterceptor(interceptor).addPathPatterns("/**").excludePathPatterns(exclude);
     }
